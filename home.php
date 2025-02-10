@@ -2,77 +2,54 @@
 include 'connect.php';
 
 if (isset($_POST['submit'])) {
+    $name = $_POST['name'];
+    $artist = isset($_POST['artist']) ? $_POST['artist'] : '';
+    
+    $album = ($_FILES['album']['error'] === 0) ? 'uploaded_album/' . $_FILES['album']['name'] : '';
+    $music = ($_FILES['music']['error'] === 0) ? 'uploaded_music/' . $_FILES['music']['name'] : '';
 
-   $name = $_POST['name'];
-   $name = filter_var($name);
-   $artist = $_POST['artist'];
-   $artist = filter_var($artist);
+    if ($_FILES['album']['size'] > 2000000) {
+        $message[] = 'Album size is too large!';
+    } elseif ($_FILES['music']['size'] > 100000000) {
+        $message[] = 'Music size is too large!';
+    } else {
+        if ($album) move_uploaded_file($_FILES['album']['tmp_name'], $album);
+        if ($music) move_uploaded_file($_FILES['music']['tmp_name'], $music);
 
-   if (!isset($artist)) {
-      $artist = '';
-   }
+        $stmt = $conn->prepare("INSERT INTO `songs` (`name`, `artist`, `album`, `music`) VALUES (:name, :artist, :album, :music)");
+        $stmt->bindParam(':name', $name);
+        $stmt->bindParam(':artist', $artist);
+        $stmt->bindParam(':album', $album);
+        $stmt->bindParam(':music', $music);
+        $stmt->execute();
 
-   $album = $_FILES['album']['name'];
-   $album = filter_var($album);
-   $album_size = $_FILES['album']['size'];
-   $album_tmp_name = $_FILES['album']['tmp_name'];
-   $album_folder = 'uploaded_album/' . $album;
-
-   if (isset($album)) {
-      if ($album_size > 2000000) {
-         $message[] = 'album size is too large!';
-      } else {
-         move_uploaded_file($album_tmp_name, $album_folder);
-      }
-   } else {
-      $album = '';
-   }
-
-   $music = $_FILES['music']['name'];
-   $music = filter_var($music);
-   $music_size = $_FILES['music']['size'];
-   $music_tmp_name = $_FILES['music']['tmp_name'];
-   $music_folder = 'uploaded_music/' . $music;
-
-   if ($music_size > 100000000) {
-      $message[] = 'music size is too large!';
-   } else {
-      $upload_music = $conn->prepare("INSERT INTO `songs`(name, artist, album, music) VALUES(?,?,?,?)");
-      $upload_music->execute([$name, $artist, $album, $music]);
-      move_uploaded_file($music_tmp_name, $music_folder);
-      $message[] = 'new music uploaded!';
-   }
+        $message[] = 'New music uploaded successfully!';
+    }
 }
 
 if (isset($message)) {
-   foreach ($message as $message) {
-      echo '
-      <div class="message" id="messageBox">
-         <span>' . $message . '</span>
-         <i class="fas fa-times" onclick="this.parentElement.remove();"></i>
-      </div>
-      ';
-   }
+    foreach ($message as $msg) {
+        echo '<div class="message" id="messageBox"><span>' . $msg . '</span><i class="fas fa-times" onclick="this.parentElement.remove();"></i></div>';
+    }
 }
 ?>
 
+
+
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
    <meta charset="UTF-8">
    <meta http-equiv="X-UA-Compatible" content="IE=edge">
    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   <title>home</title>
+   <title>Home Page</title>
    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.2/css/all.min.css">
    <link rel="stylesheet" href="css/style.css">
 </head>
-
 <body>
-
    <section class="playlist">
       <div class="heading">
-         <h3>music playlist</h3>
+         <h3>Music Playlist</h3>
          <button class="btn" id="openModal">upload music</button>
       </div>
       <button id="shuffleBtn" class="btn">
